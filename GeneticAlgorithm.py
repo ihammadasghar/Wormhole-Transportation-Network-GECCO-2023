@@ -19,56 +19,98 @@ def get_blackholes_with_destination(destination):
 
 penultimate_blackholes = get_blackholes_with_destination(DESTINATION)
 
-def get_blackholes_with_source(source):
-    destinations = []
-    for x in data['edges']:
-        if x[0] == source:
-            destinations.append(x[1]) 
-    return destinations
+def get_wormholes_with_source(source):
+    wormholes = []
+    
+    for i in range(len(data['edges'])):
+        print(i+1,"/",len(data['edges']))
+        if data['edges'][i][0] == source:
+            wormholes.append(i) 
+    return wormholes
 
 
-def find_solution_for_ship(ship, mean_time):
+def find_solution_for_ship(ship, mean_time=None):
     while(True):
-        print(f"Started Attempt 1 for ship {ship}")
+        print(f"Started Attempt 1 for ship {ship} for goal mean time {mean_time}")
         origin_blackhole = random.choice(origins[ship])
         current_blackhole = origin_blackhole
         traveresed_blackholes = [origin_blackhole]
         jumps = 1
-        is_in_time_window = True
+        time = data['delays'][ship]
+        uncertainity = 0
+        ended = False
         
-        while(jumps < JUMP_LIMIT):
-            next_blackhole_options = get_blackholes_with_source(current_blackhole)
+        while(jumps < JUMP_LIMIT and not ended):
+            print("searching wormholes...")
+            wormhole_option = get_wormholes_with_source(current_blackhole)
+            print("Found worm hole options\nSearching Black holes")
+            next_blackhole_options = [data['edges'][i][1] for i in wormhole_option]
+            chosen_wormhole = None
+            next_blackhole = None
 
-            # If it is in time window try to get to destination ASAP
-            if is_in_time_window:
-                if DESTINATION in next_blackhole_options:
+            print("Found blackhole options")
+
+            if DESTINATION in next_blackhole_options:
+                chosen_wormhole = wormhole_option[next_blackhole_options.index(DESTINATION)]
+                chosen_wormhole_mean = data['meanvar'][chosen_wormhole][0]
+
+                if (not mean_time) or (mean_time and abs(time+chosen_wormhole_mean-mean_time) <= 0.5):
                     next_blackhole = DESTINATION
-                else:
-                    penultimate_found = False
-                    for b in next_blackhole_options:
-                        if b in penultimate_blackholes:
+                    ended = True
+                
+                print("Checked if going to destination available")
+            
+            if not ended:
+                penultimate_found = False
+                for b in next_blackhole_options.copy():
+                    if b in penultimate_blackholes:
+                        chosen_wormhole = wormhole_option[next_blackhole_options.index(b)]
+                        chosen_wormhole_mean = data['meanvar'][chosen_wormhole][0]
+
+                        if (not mean_time) or (mean_time and abs(time+chosen_wormhole_mean-mean_time) <= 0.5):
                             next_blackhole = b
                             penultimate_found = True
                             break
+
+                    next_blackhole_options.remove(b)
+                
+                print("Checked if going to penultimate node available")
+
+                if(not penultimate_found):
+                    for b in next_blackhole_options:
+                        if b in penultimate_blackholes:
+                            chosen_wormhole = wormhole_option[next_blackhole_options.index(b)]
+                            chosen_wormhole_mean = data['meanvar'][chosen_wormhole][0]
+
+                            if (not mean_time) or (mean_time and abs(time+chosen_wormhole_mean-mean_time) <= 0.5):
+                                next_blackhole = b
+                                break
                     
-                    if(not penultimate_found):
-                        next_blackhole = (random.choice(next_blackhole_options))
-            else:
-                # Choose blackholes that help get closer to time window
-                next_blackhole = (random.choice(next_blackhole_options))
+                    print("Checked if going to rest nodes in time limit available")
+
+                if not next_blackhole:
+                    next_blackhole = random.choice(next_blackhole_options)            
+
+            time += data['meanvar'][chosen_wormhole][0]
+            uncertainity += data['meanvar'][chosen_wormhole][1]
 
             traveresed_blackholes.append(next_blackhole)
             current_blackhole = next_blackhole
+
+            print("Jump ", jumps, "| next black hole: ", next_blackhole, "| time: ", time, "| Uncertainity: ", uncertainity)
             jumps += 1
             if(current_blackhole == data['destination']):
                 print(f"Solution found for ship {ship} with {len(traveresed_blackholes)} jumps")
+                if not mean_time:
+                    return traveresed_blackholes, time
                 return traveresed_blackholes
             
         print(f"Jumps Exceeded.")
 
 
 def generate_gen_zero():
-    solutions = [find_solution_for_ship(i) for i in range(NUM_OF_SHIPS)]
+    solution1, mean_time = find_solution_for_ship(0)
+    solutions = [solution1] + [find_solution_for_ship(i, mean_time) for i in range(1, NUM_OF_SHIPS)]
     gen_zero = udp.convert_to_chromosome(solutions)
     print(gen_zero)
 

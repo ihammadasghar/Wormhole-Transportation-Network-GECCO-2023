@@ -1,5 +1,4 @@
 import numpy as np
-from GeneticAlgorithm import get_wormholes
 
 def showData(data):
     print("Jump Limit: ", data["jump_limit"])
@@ -10,5 +9,3 @@ def showData(data):
 data = np.load('database.npz')
 
 showData(data)
-
-print("number of connections to destination: ", len(get_wormholes(105)))
