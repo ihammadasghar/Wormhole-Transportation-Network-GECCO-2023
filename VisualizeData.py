@@ -8,4 +8,5 @@ def showData(data):
 
 data = np.load('database.npz')
 
+print("Delays: ", data['delays'])
 showData(data)
