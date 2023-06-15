@@ -1,5 +1,6 @@
 class Blackhole:
-    def __init__(self):
+    def __init__(self, id):
+        self.id = id
         self.wormholes = []
         self.visited = False
 
@@ -12,11 +13,9 @@ class Wormhole:
 
 
 class BlackholeNetworkTree:
-    def __init__(self, data, num_of_blackholes):
-        self.blackholes = {(i+1): Blackhole() for i in range(num_of_blackholes)}
-        self.wormholes = {i: Wormhole(data['meanvar'][i][0], data['meanvar'][i][1], d) for i, (_, d) in enumerate(data['edges'])}
-
-        for i, (source, destination) in enumerate(data['edges']):
-            wormhole = Wormhole(data['meanvar'][i][0], data['meanvar'][i][1], self.blackholes[destination])
-            self.wormholes[i] = Wormhole(data['meanvar'][i][0], data['meanvar'][i][1], destination)
+    def __init__(self, edges, means, variances, num_of_blackholes):
+        self.blackholes = {(i+1): Blackhole(i+1) for i in range(num_of_blackholes)}
+        
+        for i, (source, destination) in enumerate(edges):
+            wormhole = Wormhole(means[i], variances[i], self.blackholes[destination])
             self.blackholes[source].wormholes.append(wormhole)
